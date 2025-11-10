@@ -22,7 +22,8 @@
             danger: '#F53F3F',
             warning: '#FF7D00',
             success: '#00B42A',
-            camp: '#722ED1' // 大本营紫色
+            camp: '#722ED1', // 大本营紫色
+            gold: '#FFD700' // 金色（用于奖励）
           },
           fontFamily: {
             wechat: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif']
@@ -33,7 +34,9 @@
             'shake': 'shake 0.5s ease-in-out',
             'attack': 'attack 0.3s ease-in-out',
             'spawn': 'spawn 0.3s ease-out',
-            'countdown-warning': 'pulse 1s ease-in-out infinite'
+            'countdown-warning': 'pulse 1s ease-in-out infinite',
+            'reward-popup': 'popup 0.5s ease-out forwards',
+            'fade-in': 'fadeIn 0.5s ease-out forwards'
           },
           keyframes: {
             float: {
@@ -57,6 +60,14 @@
             pulse: {
               '0%, 100%': { opacity: 1 },
               '50%': { opacity: 0.5 },
+            },
+            popup: {
+              '0%': { transform: 'scale(0.8)', opacity: 0 },
+              '100%': { transform: 'scale(1)', opacity: 1 },
+            },
+            fadeIn: {
+              '0%': { opacity: 0 },
+              '100%': { opacity: 1 },
             }
           }
         }
@@ -75,11 +86,26 @@
       .text-shadow-lg {
         text-shadow: 0 4px 8px rgba(0,0,0,0.2);
       }
+      .text-shadow-gold {
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+      }
       .bg-gradient-game {
         background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
       }
+      .bg-gradient-win {
+        background: linear-gradient(135deg, #00B42A 0%, #0FC6C2 100%);
+      }
+      .bg-gradient-lose {
+        background: linear-gradient(135deg, #F53F3F 0%, #FF7D00 100%);
+      }
       .border-glow {
         box-shadow: 0 0 15px rgba(22, 119, 255, 0.5);
+      }
+      .border-glow-win {
+        box-shadow: 0 0 20px rgba(0, 180, 42, 0.6);
+      }
+      .border-glow-lose {
+        box-shadow: 0 0 20px rgba(245, 63, 63, 0.6);
       }
       .scrollbar-hide::-webkit-scrollbar {
         display: none;
@@ -135,6 +161,21 @@
         border-color: #F53F3F;
         color: #F53F3F;
         animation: pulse 1s ease-in-out infinite;
+      }
+      .stat-card {
+        background: rgba(0,0,0,0.3);
+        border-radius: 8px;
+        padding: 12px;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255,255,255,0.1);
+      }
+      .reward-card {
+        background: rgba(255, 215, 0, 0.1);
+        border-radius: 8px;
+        padding: 16px;
+        backdrop-filter: blur(4px);
+        border: 2px solid #FFD700;
+        animation: reward-popup 0.5s ease-out forwards;
       }
     }
   </style>
@@ -360,44 +401,80 @@
       </div>
     </main>
     
-    <!-- 战斗结束弹窗 -->
-    <div id="battle-result" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
-      <div class="bg-gray-800/90 backdrop-blur-md rounded-2xl p-6 border border-gray-700/50 max-w-md w-full text-center">
-        <div id="result-icon" class="w-20 h-20 rounded-full bg-success/20 border-2 border-success flex items-center justify-center mx-auto mb-4">
-          <i class="fa fa-trophy text-3xl text-success"></i>
-        </div>
-        <h3 id="result-title" class="text-2xl font-bold text-success mb-2">战斗胜利!</h3>
-        <p id="result-desc" class="text-gray-400 mb-6">你成功守护了大本营，获得了丰厚奖励</p>
-        
-        <div class="grid grid-cols-2 gap-3 mb-6">
-          <div class="bg-gray-700/50 rounded-xl p-3">
-            <p class="text-gray-400 text-sm">获得积分</p>
-            <p class="text-2xl font-bold text-yellow-400">+50</p>
+    <!-- 战斗结束结算弹窗（核心升级） -->
+    <div id="battle-result" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+      <div class="bg-gray-800/90 backdrop-blur-md rounded-2xl p-8 border border-gray-700/50 max-w-md w-full animate-fade-in" id="result-container">
+        <!-- 胜利/失败标题区域 -->
+        <div class="text-center mb-6" id="result-header">
+          <div class="w-24 h-24 rounded-full mx-auto mb-4 border-4 flex items-center justify-center" id="result-icon-container">
+            <i class="fa fa-trophy text-4xl" id="result-icon"></i>
           </div>
-          <div class="bg-gray-700/50 rounded-xl p-3">
-            <p class="text-gray-400 text-sm">击杀数</p>
-            <p class="text-2xl font-bold text-white" id="kill-count">0</p>
-          </div>
+          <h3 class="text-2xl font-bold mb-2" id="result-title">战斗胜利!</h3>
+          <p class="text-gray-300" id="result-desc">坚守1分钟！成功守护大本营</p>
         </div>
         
+        <!-- 战斗数据统计区域 -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div class="stat-card text-center">
+            <p class="text-gray-400 text-sm mb-1">击杀数</p>
+            <p class="text-2xl font-bold text-white" id="stat-kills">0</p>
+          </div>
+          <div class="stat-card text-center">
+            <p class="text-gray-400 text-sm mb-1">剩余血量</p>
+            <p class="text-2xl font-bold text-camp" id="stat-camp-hp">0</p>
+          </div>
+          <div class="stat-card text-center">
+            <p class="text-gray-400 text-sm mb-1">战斗时长</p>
+            <p class="text-2xl font-bold text-white" id="stat-time">00:00</p>
+          </div>
+          <div class="stat-card text-center">
+            <p class="text-gray-400 text-sm mb-1">召唤单位</p>
+            <p class="text-2xl font-bold text-white" id="stat-summoned">0</p>
+          </div>
+        </div>
+        
+        <!-- 奖励结算区域（胜利专属） -->
+        <div class="reward-card mb-6 hidden" id="reward-section">
+          <div class="text-center">
+            <h4 class="text-lg font-bold text-gold text-shadow-gold mb-3">战斗奖励</h4>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="flex flex-col items-center">
+                <i class="fa fa-bolt text-2xl text-gold mb-1"></i>
+                <p class="text-gray-300 text-sm">基础奖励</p>
+                <p class="text-xl font-bold text-gold" id="reward-base">+50</p>
+              </div>
+              <div class="flex flex-col items-center">
+                <i class="fa fa-star text-2xl text-gold mb-1"></i>
+                <p class="text-gray-300 text-sm">击杀奖励</p>
+                <p class="text-xl font-bold text-gold" id="reward-kills">+0</p>
+              </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gold/30">
+              <p class="text-gray-300 text-sm">总积分奖励</p>
+              <p class="text-2xl font-bold text-gold text-shadow-gold" id="reward-total">+0</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 按钮区域 -->
         <div class="flex gap-3">
           <button id="back-to-user-from-result" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300">
-            返回主页
+            <i class="fa fa-arrow-left mr-2"></i> 返回主页
           </button>
-          <button id="play-again" class="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300">
-            再来一局
+          <button id="play-again" class="flex-1 font-bold py-3 px-4 rounded-lg transition-all duration-300" id="play-again-btn">
+            <i class="fa fa-refresh mr-2"></i> 再来一局
           </button>
         </div>
       </div>
     </div>
 
   <script>
-    // 全局状态管理（新增倒计时相关状态）
+    // 全局状态管理（新增结算相关统计数据）
     const gameState = {
       currentPage: 'login',
       userId: '',
       userName: '',
-      userAvatar: '1',
+      userAvatar: '1', // 默认头像ID（1-4）
       winCount: 0,
       loseCount: 0,
       battleTimer: null,
@@ -409,7 +486,16 @@
       units: [],
       countdownTimer: null, // 倒计时计时器
       remainingTime: 60, // 剩余时间（秒），1分钟=60秒
-      gameOver: false // 游戏是否结束
+      gameOver: false, // 游戏是否结束
+      // 结算统计数据
+      statData: {
+        summonedUnits: 0, // 召唤的单位数量
+        enemyTypesKilled: { // 各类型敌人击杀数
+          enemy1: 0,
+          enemy2: 0,
+          enemy3: 0
+        }
+      }
     };
 
     // 单位配置（优化敌人属性，强化进攻能力）
@@ -438,6 +524,7 @@
       },
       enemy1: {
         type: 'enemy1',
+        name: '外星入侵者',
         hp: 40,
         attack: 12, // 攻击力提升
         speed: 1.8, // 移动速度提升（更快接近大本营）
@@ -445,10 +532,12 @@
         icon: 'fa-alien',
         isEnemy: true,
         searchRange: 100, // 寻敌范围缩小，优先冲向大本营
-        priority: 'camp' // 优先攻击大本营
+        priority: 'camp', // 优先攻击大本营
+        killReward: 20 // 击杀奖励积分
       },
       enemy2: {
         type: 'enemy2',
+        name: '战争机器人',
         hp: 60,
         attack: 18, // 攻击力提升
         speed: 1.2, // 移动速度适中
@@ -456,10 +545,12 @@
         icon: 'fa-robot',
         isEnemy: true,
         searchRange: 150, // 寻敌范围较小
-        priority: 'camp' // 优先攻击大本营
+        priority: 'camp', // 优先攻击大本营
+        killReward: 30 // 击杀奖励积分
       },
       enemy3: {
         type: 'enemy3',
+        name: '星际虫子',
         hp: 30,
         attack: 10, // 攻击力提升
         speed: 2.2, // 移动速度最快（快速突击）
@@ -467,11 +558,12 @@
         icon: 'fa-bug',
         isEnemy: true,
         searchRange: 80, // 寻敌范围最小，专注冲向大本营
-        priority: 'camp' // 优先攻击大本营
+        priority: 'camp', // 优先攻击大本营
+        killReward: 15 // 击杀奖励积分
       }
     };
 
-    // DOM元素（新增倒计时相关元素）
+    // DOM元素（新增结算相关元素）
     const elements = {
       loginPage: document.getElementById('login-page'),
       userPage: document.getElementById('user-page'),
@@ -494,7 +586,6 @@
       loseCount: document.getElementById('lose-count'),
       battleUserAvatar: document.getElementById('battle-user-avatar'),
       battleUserName: document.getElementById('battle-user-name'),
-      battleTimer: document.getElementById('battle-timer'),
       battleScore: document.getElementById('battle-score'),
       campHp: document.getElementById('camp-hp'),
       summonSoldierBtn: document.getElementById('summon-soldier'),
@@ -502,13 +593,24 @@
       battleLog: document.getElementById('battle-log'),
       damageContainer: document.getElementById('damage-container'),
       battleResult: document.getElementById('battle-result'),
+      resultContainer: document.getElementById('result-container'),
+      resultHeader: document.getElementById('result-header'),
+      resultIconContainer: document.getElementById('result-icon-container'),
       resultIcon: document.getElementById('result-icon'),
       resultTitle: document.getElementById('result-title'),
       resultDesc: document.getElementById('result-desc'),
-      newWinRate: document.getElementById('new-win-rate'),
-      killCount: document.getElementById('kill-count'),
-      countdownContainer: document.getElementById('countdown-container'),
-      countdownText: document.getElementById('countdown-text')
+      // 结算统计元素
+      statKills: document.getElementById('stat-kills'),
+      statCampHp: document.getElementById('stat-camp-hp'),
+      statTime: document.getElementById('stat-time'),
+      statSummoned: document.getElementById('stat-summoned'),
+      // 奖励结算元素
+      rewardSection: document.getElementById('reward-section'),
+      rewardBase: document.getElementById('reward-base'),
+      rewardKills: document.getElementById('reward-kills'),
+      rewardTotal: document.getElementById('reward-total'),
+      // 按钮元素
+      playAgainBtn: document.getElementById('play-again')
     };
 
     // 页面切换函数
@@ -545,86 +647,121 @@
 
     // 更新用户信息显示
     function updateUserInfo() {
-      // 设置头像
-      const avatarIcons = ['fa-user', 'fa-robot', 'fa-alien', 'fa-star'];
-      const avatarColors = ['text-primary', 'text-secondary', 'text-warning', 'text-danger'];
-      const avatarBgColors = ['bg-primary/20', 'bg-secondary/20', 'bg-warning/20', 'bg-danger/20'];
-      const avatarBorderColors = ['border-primary', 'border-secondary', 'border-warning', 'border-danger'];
-      
-      const avatarIndex = parseInt(gameState.userAvatar) - 1;
-      elements.userAvatar.className = `w-16 h-16 rounded-full ${avatarBgColors[avatarIndex]} border-2 ${avatarBorderColors[avatarIndex]} flex items-center justify-center mr-4`;
-      elements.userAvatar.innerHTML = `<i class="fa ${avatarIcons[avatarIndex]} text-2xl ${avatarColors[avatarIndex]}"></i>`;
-      
-      elements.battleUserAvatar.className = `w-10 h-10 rounded-full ${avatarBgColors[avatarIndex]} border-2 ${avatarBorderColors[avatarIndex]} flex items-center justify-center mr-2`;
-      elements.battleUserAvatar.innerHTML = `<i class="fa ${avatarIcons[avatarIndex]} text-lg ${avatarColors[avatarIndex]}"></i>`;
-      
-      // 设置其他信息
-      elements.userName.textContent = gameState.userName;
-      elements.userId.textContent = gameState.userId;
-      elements.winCount.textContent = gameState.winCount;
-      elements.loseCount.textContent = gameState.loseCount;
-      elements.winRate.textContent = calculateWinRate();
-      elements.battleUserName.textContent = gameState.userName;
+      try {
+        // 设置头像（修复：确保索引在1-4范围内）
+        const avatarIcons = ['fa-user', 'fa-robot', 'fa-alien', 'fa-star'];
+        const avatarColors = ['text-primary', 'text-secondary', 'text-warning', 'text-danger'];
+        const avatarBgColors = ['bg-primary/20', 'bg-secondary/20', 'bg-warning/20', 'bg-danger/20'];
+        const avatarBorderColors = ['border-primary', 'border-secondary', 'border-warning', 'border-danger'];
+        
+        // 强制转换为数字并确保在1-4之间
+        let avatarIndex = parseInt(gameState.userAvatar) - 1;
+        avatarIndex = Math.max(0, Math.min(3, avatarIndex)); // 限制索引0-3（对应1-4）
+        
+        // 更新用户头像
+        elements.userAvatar.className = `w-16 h-16 rounded-full ${avatarBgColors[avatarIndex]} border-2 ${avatarBorderColors[avatarIndex]} flex items-center justify-center mr-4`;
+        elements.userAvatar.innerHTML = `<i class="fa ${avatarIcons[avatarIndex]} text-2xl ${avatarColors[avatarIndex]}"></i>`;
+        
+        // 更新战斗页面头像
+        elements.battleUserAvatar.className = `w-10 h-10 rounded-full ${avatarBgColors[avatarIndex]} border-2 ${avatarBorderColors[avatarIndex]} flex items-center justify-center mr-2`;
+        elements.battleUserAvatar.innerHTML = `<i class="fa ${avatarIcons[avatarIndex]} text-lg ${avatarColors[avatarIndex]}"></i>`;
+        
+        // 设置其他信息
+        elements.userName.textContent = gameState.userName || '星际战士';
+        elements.userId.textContent = gameState.userId || '888888';
+        elements.winCount.textContent = gameState.winCount;
+        elements.loseCount.textContent = gameState.loseCount;
+        elements.winRate.textContent = calculateWinRate();
+        elements.battleUserName.textContent = gameState.userName || '星际战士';
+      } catch (error) {
+        console.error('更新用户信息失败:', error);
+        // 降级处理：使用默认值
+        elements.userAvatar.className = 'w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mr-4';
+        elements.userAvatar.innerHTML = '<i class="fa fa-user text-2xl text-primary"></i>';
+        elements.userName.textContent = '星际战士';
+        elements.userId.textContent = '888888';
+      }
     }
 
-    // 初始化战斗（新增倒计时初始化）
+    // 初始化战斗（重置结算统计数据）
     function initBattle() {
-      // 重置战斗状态
-      gameState.battleTime = 0;
-      gameState.battleScore = 100; // 初始赠送100积分
-      gameState.campHp = 200;
-      gameState.killCount = 0;
-      gameState.units = [];
-      gameState.remainingTime = 60; // 重置为1分钟
-      gameState.gameOver = false;
-      
-      // 清空战场
-      const battleField = document.querySelector('.battle-field');
-      document.querySelectorAll('.unit').forEach(unit => unit.remove());
-      
-      // 更新UI
-      elements.battleScore.textContent = gameState.battleScore;
-      elements.campHp.textContent = gameState.campHp;
-      elements.battleLog.innerHTML = '';
-      elements.battleResult.classList.add('hidden');
-      elements.killCount.textContent = gameState.killCount;
-      
-      // 初始化倒计时UI
-      updateCountdownUI();
-      elements.countdownContainer.classList.remove('countdown-warning');
-      
-      // 清除之前的计时器
-      if (gameState.battleTimer) {
-        clearInterval(gameState.battleTimer);
+      try {
+        // 重置战斗状态
+        gameState.battleTime = 0;
+        gameState.battleScore = 100; // 初始赠送100积分
+        gameState.campHp = 200;
+        gameState.killCount = 0;
+        gameState.units = [];
+        gameState.remainingTime = 60; // 重置为1分钟
+        gameState.gameOver = false;
+        
+        // 重置结算统计数据
+        gameState.statData = {
+          summonedUnits: 0,
+          enemyTypesKilled: {
+            enemy1: 0,
+            enemy2: 0,
+            enemy3: 0
+          }
+        };
+        
+        // 清空战场
+        const battleField = document.querySelector('.battle-field');
+        document.querySelectorAll('.unit').forEach(unit => {
+          if (unit.parentNode === battleField) {
+            unit.remove();
+          }
+        });
+        
+        // 更新UI
+        elements.battleScore.textContent = gameState.battleScore;
+        elements.campHp.textContent = gameState.campHp;
+        elements.battleLog.innerHTML = '';
+        elements.battleResult.classList.add('hidden');
+        
+        // 初始化倒计时UI
+        updateCountdownUI();
+        const countdownContainer = document.getElementById('countdown-container');
+        if (countdownContainer) {
+          countdownContainer.classList.remove('countdown-warning');
+        }
+        
+        // 清除之前的计时器
+        if (gameState.battleTimer) {
+          clearInterval(gameState.battleTimer);
+        }
+        if (gameState.enemySpawnTimer) {
+          clearInterval(gameState.enemySpawnTimer);
+        }
+        if (gameState.countdownTimer) {
+          clearInterval(gameState.countdownTimer);
+        }
+        
+        // 启动计时器
+        gameState.battleTimer = setInterval(() => {
+          gameState.battleTime++;
+        }, 1000);
+        
+        // 启动1分钟倒计时
+        startCountdown();
+        
+        // 启动敌人刷新计时器（2-3秒刷新一个，提升进攻强度）
+        startEnemySpawn();
+        
+        // 添加战斗开始日志
+        addBattleLog('战斗开始! 敌人全力进攻大本营，坚守1分钟!', 'text-gray-300');
+        addBattleLog(`初始积分: ${gameState.battleScore}`, 'text-yellow-400');
+      } catch (error) {
+        console.error('初始化战斗失败:', error);
+        addBattleLog('战斗初始化失败，请重试', 'text-danger');
       }
-      if (gameState.enemySpawnTimer) {
-        clearInterval(gameState.enemySpawnTimer);
-      }
-      if (gameState.countdownTimer) {
-        clearInterval(gameState.countdownTimer);
-      }
-      
-      // 启动计时器
-      gameState.battleTimer = setInterval(() => {
-        gameState.battleTime++;
-        const minutes = Math.floor(gameState.battleTime / 60).toString().padStart(2, '0');
-        const seconds = (gameState.battleTime % 60).toString().padStart(2, '0');
-        // 不再显示战斗时长，改为显示倒计时
-      }, 1000);
-      
-      // 启动1分钟倒计时（核心新增）
-      startCountdown();
-      
-      // 启动敌人刷新计时器（2-3秒刷新一个，提升进攻强度）
-      startEnemySpawn();
-      
-      // 添加战斗开始日志
-      addBattleLog('战斗开始! 敌人全力进攻大本营，坚守1分钟!', 'text-gray-300');
-      addBattleLog(`初始积分: ${gameState.battleScore}`, 'text-yellow-400');
     }
 
-    // 启动1分钟倒计时（核心新增）
+    // 启动1分钟倒计时
     function startCountdown() {
+      const countdownText = document.getElementById('countdown-text');
+      if (!countdownText) return;
+      
       gameState.countdownTimer = setInterval(() => {
         if (gameState.gameOver) {
           clearInterval(gameState.countdownTimer);
@@ -641,18 +778,22 @@
         }
         
         // 最后10秒添加警告效果
-        if (gameState.remainingTime === 10) {
-          elements.countdownContainer.classList.add('countdown-warning');
+        const countdownContainer = document.getElementById('countdown-container');
+        if (gameState.remainingTime === 10 && countdownContainer) {
+          countdownContainer.classList.add('countdown-warning');
           addBattleLog('倒计时10秒！坚持住！', 'text-warning');
         }
       }, 1000);
     }
 
-    // 更新倒计时UI显示（核心新增）
+    // 更新倒计时UI显示
     function updateCountdownUI() {
+      const countdownText = document.getElementById('countdown-text');
+      if (!countdownText) return;
+      
       const minutes = Math.floor(gameState.remainingTime / 60).toString().padStart(2, '0');
       const seconds = (gameState.remainingTime % 60).toString().padStart(2, '0');
-      elements.countdownText.textContent = `${minutes}:${seconds}`;
+      countdownText.textContent = `${minutes}:${seconds}`;
     }
 
     // 开始敌人刷新（优化刷新频率，提升进攻强度）
@@ -673,75 +814,78 @@
 
     // 生成敌人（优化逻辑，敌人全力冲向大本营）
     function spawnEnemy() {
-      // 随机选择敌人类型
-      const enemyTypes = ['enemy1', 'enemy2', 'enemy3'];
-      const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-      const config = unitConfigs[randomType];
-      
-      // 随机生成x坐标（屏幕宽度范围内），确保分散进攻
-      const battleField = document.querySelector('.battle-field');
-      const fieldWidth = battleField.offsetWidth;
-      const x = Math.random() * (fieldWidth - 60) + 30; // 30-屏幕宽度-30
-      
-      // 创建敌人元素
-      const enemyId = generateRandomId();
-      const enemyElement = document.createElement('div');
-      enemyElement.id = enemyId;
-      enemyElement.className = `unit bg-${config.color}/20 border-2 border-${config.color} animate-spawn`;
-      enemyElement.style.left = `${x}px`;
-      enemyElement.style.top = '40px'; // 从顶部生成（避开顶部信息栏）
-      
-      // 添加图标
-      enemyElement.innerHTML = `
-        <i class="fa ${config.icon} text-xl text-${config.color}"></i>
-        <div class="hp-bar">
-          <div class="hp-fill bg-${config.color}" style="width: 100%"></div>
-        </div>
-      `;
-      
-      // 添加到战场
-      battleField.appendChild(enemyElement);
-      
-      // 获取大本营位置（用于敌人导航）
-      const campRect = document.querySelector('.camp').getBoundingClientRect();
-      const campX = campRect.left + campRect.width / 2;
-      const campY = campRect.top + campRect.height / 2;
-      
-      // 记录敌人信息（新增大本营目标点）
-      const enemy = {
-        id: enemyId,
-        type: config.type,
-        x: x,
-        y: 40,
-        hp: config.hp,
-        maxHp: config.hp,
-        attack: config.attack,
-        speed: config.speed,
-        isEnemy: config.isEnemy,
-        element: enemyElement,
-        isEngaged: false, // 是否正在战斗
-        target: null,
-        attackCooldown: 0,
-        searchRange: config.searchRange,
-        priority: config.priority,
-        campTarget: { x: campX, y: campY } // 大本营目标位置
-      };
-      
-      gameState.units.push(enemy);
-      addBattleLog(`敌人${getEnemyTypeName(config.type)}发起进攻！`, 'text-danger');
-      
-      // 启动单位AI（移动+寻敌）
-      startUnitAI(enemy);
-    }
-
-    // 获取敌人类型名称
-    function getEnemyTypeName(type) {
-      const names = {
-        enemy1: '外星入侵者',
-        enemy2: '战争机器人',
-        enemy3: '星际虫子'
-      };
-      return names[type] || '未知敌人';
+      try {
+        // 随机选择敌人类型
+        const enemyTypes = ['enemy1', 'enemy2', 'enemy3'];
+        const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+        const config = unitConfigs[randomType];
+        if (!config) return;
+        
+        // 随机生成x坐标（屏幕宽度范围内），确保分散进攻
+        const battleField = document.querySelector('.battle-field');
+        if (!battleField) return;
+        
+        const fieldWidth = battleField.offsetWidth;
+        const x = Math.random() * (fieldWidth - 60) + 30; // 30-屏幕宽度-30
+        
+        // 创建敌人元素
+        const enemyId = generateRandomId();
+        const enemyElement = document.createElement('div');
+        enemyElement.id = enemyId;
+        enemyElement.className = `unit bg-${config.color}/20 border-2 border-${config.color} animate-spawn`;
+        enemyElement.style.left = `${x}px`;
+        enemyElement.style.top = '40px'; // 从顶部生成（避开顶部信息栏）
+        
+        // 添加图标
+        enemyElement.innerHTML = `
+          <i class="fa ${config.icon} text-xl text-${config.color}"></i>
+          <div class="hp-bar">
+            <div class="hp-fill bg-${config.color}" style="width: 100%"></div>
+          </div>
+        `;
+        
+        // 添加到战场
+        battleField.appendChild(enemyElement);
+        
+        // 获取大本营位置（用于敌人导航）
+        const campElement = document.querySelector('.camp');
+        if (!campElement) return;
+        
+        const campRect = campElement.getBoundingClientRect();
+        const fieldRect = battleField.getBoundingClientRect();
+        const campX = campRect.left - fieldRect.left + campRect.width / 2;
+        const campY = campRect.top - fieldRect.top + campRect.height / 2;
+        
+        // 记录敌人信息（新增大本营目标点）
+        const enemy = {
+          id: enemyId,
+          type: config.type,
+          name: config.name,
+          x: x,
+          y: 40,
+          hp: config.hp,
+          maxHp: config.hp,
+          attack: config.attack,
+          speed: config.speed,
+          isEnemy: config.isEnemy,
+          element: enemyElement,
+          isEngaged: false, // 是否正在战斗
+          target: null,
+          attackCooldown: 0,
+          searchRange: config.searchRange,
+          priority: config.priority,
+          campTarget: { x: campX, y: campY }, // 大本营目标位置
+          killReward: config.killReward
+        };
+        
+        gameState.units.push(enemy);
+        addBattleLog(`敌人${config.name}发起进攻！`, 'text-danger');
+        
+        // 启动单位AI（移动+寻敌）
+        startUnitAI(enemy);
+      } catch (error) {
+        console.error('生成敌人失败:', error);
+      }
     }
 
     // 召唤友军单位（从大本营两侧生成，向上移动）
@@ -749,6 +893,7 @@
       if (gameState.gameOver) return; // 游戏结束后禁止召唤
       
       const config = unitConfigs[unitType];
+      if (!config) return;
       
       // 检查积分是否足够
       if (gameState.battleScore < config.cost) {
@@ -760,59 +905,73 @@
       gameState.battleScore -= config.cost;
       elements.battleScore.textContent = gameState.battleScore;
       
-      // 从大本营两侧随机选择一侧生成
-      const campRect = document.querySelector('.camp').getBoundingClientRect();
-      const battleField = document.querySelector('.battle-field');
-      const fieldRect = battleField.getBoundingClientRect();
+      // 统计召唤单位数量
+      gameState.statData.summonedUnits++;
       
-      // 随机左侧或右侧生成
-      const isLeft = Math.random() > 0.5;
-      const x = isLeft ? 
-        campRect.left - fieldRect.left - 60 : // 左侧
-        campRect.right - fieldRect.left + 10; // 右侧
-      
-      // 创建单位元素
-      const unitId = generateRandomId();
-      const unitElement = document.createElement('div');
-      unitElement.id = unitId;
-      unitElement.className = `unit bg-${config.color}/20 border-2 border-${config.color} animate-spawn`;
-      unitElement.style.left = `${x}px`;
-      unitElement.style.bottom = '120px'; // 大本营上方位置
-      
-      // 添加图标
-      unitElement.innerHTML = `
-        <i class="fa ${config.icon} text-xl text-${config.color}"></i>
-        <div class="hp-bar">
-          <div class="hp-fill bg-${config.color}" style="width: 100%"></div>
-        </div>
-      `;
-      
-      // 添加到战场
-      battleField.appendChild(unitElement);
-      
-      // 记录单位信息
-      const unit = {
-        id: unitId,
-        type: config.type,
-        x: x,
-        y: battleField.offsetHeight - 170, // 大本营上方位置
-        hp: config.hp,
-        maxHp: config.hp,
-        attack: config.attack,
-        speed: config.speed,
-        isEnemy: config.isEnemy,
-        element: unitElement,
-        isEngaged: false, // 是否正在战斗
-        target: null,
-        attackCooldown: 0,
-        searchRange: config.searchRange
-      };
-      
-      gameState.units.push(unit);
-      addBattleLog(`召唤了${unitType === 'soldier' ? '士兵' : '坦克'}! 消耗${config.cost}积分`, 'text-success');
-      
-      // 启动单位AI（移动+寻敌）
-      startUnitAI(unit);
+      try {
+        // 从大本营两侧随机选择一侧生成
+        const campElement = document.querySelector('.camp');
+        const battleField = document.querySelector('.battle-field');
+        if (!campElement || !battleField) return;
+        
+        const campRect = campElement.getBoundingClientRect();
+        const fieldRect = battleField.getBoundingClientRect();
+        
+        // 随机左侧或右侧生成
+        const isLeft = Math.random() > 0.5;
+        const x = isLeft ? 
+          campRect.left - fieldRect.left - 60 : // 左侧
+          campRect.right - fieldRect.left + 10; // 右侧
+        
+        // 创建单位元素
+        const unitId = generateRandomId();
+        const unitElement = document.createElement('div');
+        unitElement.id = unitId;
+        unitElement.className = `unit bg-${config.color}/20 border-2 border-${config.color} animate-spawn`;
+        unitElement.style.left = `${x}px`;
+        unitElement.style.bottom = '120px'; // 大本营上方位置
+        
+        // 添加图标
+        unitElement.innerHTML = `
+          <i class="fa ${config.icon} text-xl text-${config.color}"></i>
+          <div class="hp-bar">
+            <div class="hp-fill bg-${config.color}" style="width: 100%"></div>
+          </div>
+        `;
+        
+        // 添加到战场
+        battleField.appendChild(unitElement);
+        
+        // 记录单位信息
+        const unit = {
+          id: unitId,
+          type: config.type,
+          x: x,
+          y: battleField.offsetHeight - 170, // 大本营上方位置
+          hp: config.hp,
+          maxHp: config.hp,
+          attack: config.attack,
+          speed: config.speed,
+          isEnemy: config.isEnemy,
+          element: unitElement,
+          isEngaged: false, // 是否正在战斗
+          target: null,
+          attackCooldown: 0,
+          searchRange: config.searchRange
+        };
+        
+        gameState.units.push(unit);
+        addBattleLog(`召唤了${unitType === 'soldier' ? '士兵' : '坦克'}! 消耗${config.cost}积分`, 'text-success');
+        
+        // 启动单位AI（移动+寻敌）
+        startUnitAI(unit);
+      } catch (error) {
+        console.error('召唤单位失败:', error);
+        // 恢复积分
+        gameState.battleScore += config.cost;
+        elements.battleScore.textContent = gameState.battleScore;
+        addBattleLog(`召唤${unitType === 'soldier' ? '士兵' : '坦克'}失败，请重试`, 'text-danger');
+      }
     }
 
     // 启动单位AI（核心优化：敌人全力冲向大本营）
@@ -848,61 +1007,71 @@
 
     // 敌人AI行为（核心优化：全力进攻大本营）
     function enemyAIBehavior(enemy) {
-      // 检查是否已到达大本营攻击范围
-      const campRect = document.querySelector('.camp').getBoundingClientRect();
-      const enemyRect = enemy.element.getBoundingClientRect();
-      const isInCampRange = enemyRect.top >= campRect.top - 50 && enemyRect.top <= campRect.bottom + 50 &&
-                           enemyRect.left >= campRect.left - 50 && enemyRect.right <= campRect.right + 50;
-      
-      // 已到达大本营范围，开始攻击
-      if (isInCampRange) {
-        enemy.isEngaged = true;
-        enemy.element.classList.add('unit-engaged');
-        attackCamp(enemy);
-        return;
-      }
-      
-      // 未到达大本营，检查是否有拦路的友军
-      let blockingAlly = null;
-      let blockingDistance = Infinity;
-      
-      gameState.units.forEach(unit => {
-        if (!unit.isEnemy && unit.hp > 0 && document.getElementById(unit.id)) {
-          const distance = calculateDistance(enemy, unit);
-          // 只关注前方和周围的友军（不回头）
-          if (distance <= enemy.searchRange && unit.y < enemy.y + 50) {
-            blockingDistance = distance;
-            blockingAlly = unit;
-          }
-        }
-      });
-      
-      // 有拦路友军，先消灭
-      if (blockingAlly) {
-        enemy.target = blockingAlly;
-        const distance = calculateDistance(enemy, blockingAlly);
+      try {
+        // 检查是否已到达大本营攻击范围
+        const campElement = document.querySelector('.camp');
+        const battleField = document.querySelector('.battle-field');
+        if (!campElement || !battleField) return;
         
-        if (distance <= 50) { // 攻击范围
+        const campRect = campElement.getBoundingClientRect();
+        const fieldRect = battleField.getBoundingClientRect();
+        const enemyRect = enemy.element.getBoundingClientRect();
+        
+        const isInCampRange = enemyRect.top >= campRect.top - 50 && enemyRect.top <= campRect.bottom + 50 &&
+                             enemyRect.left >= campRect.left - 50 && enemyRect.right <= campRect.right + 50;
+        
+        // 已到达大本营范围，开始攻击
+        if (isInCampRange) {
           enemy.isEngaged = true;
           enemy.element.classList.add('unit-engaged');
+          attackCamp(enemy);
+          return;
+        }
+        
+        // 未到达大本营，检查是否有拦路的友军
+        let blockingAlly = null;
+        let blockingDistance = Infinity;
+        
+        gameState.units.forEach(unit => {
+          if (!unit.isEnemy && unit.hp > 0 && document.getElementById(unit.id)) {
+            const distance = calculateDistance(enemy, unit);
+            // 只关注前方和周围的友军（不回头）
+            if (distance <= enemy.searchRange && unit.y < enemy.y + 50) {
+              blockingDistance = distance;
+              blockingAlly = unit;
+            }
+          }
+        });
+        
+        // 有拦路友军，先消灭
+        if (blockingAlly) {
+          enemy.target = blockingAlly;
+          const distance = calculateDistance(enemy, blockingAlly);
           
-          // 攻击冷却
-          if (enemy.attackCooldown <= 0) {
-            attackTarget(enemy, blockingAlly);
-            enemy.attackCooldown = 10; // 1秒攻击一次
+          if (distance <= 50) { // 攻击范围
+            enemy.isEngaged = true;
+            enemy.element.classList.add('unit-engaged');
+            
+            // 攻击冷却
+            if (enemy.attackCooldown <= 0) {
+              attackTarget(enemy, blockingAlly);
+              enemy.attackCooldown = 10; // 1秒攻击一次
+            } else {
+              enemy.attackCooldown--;
+            }
           } else {
-            enemy.attackCooldown--;
+            // 移动到拦路友军位置
+            moveTowardsTarget(enemy, blockingAlly);
           }
         } else {
-          // 移动到拦路友军位置
-          moveTowardsTarget(enemy, blockingAlly);
+          // 无拦路友军，全力冲向大本营
+          enemy.isEngaged = false;
+          enemy.target = null;
+          enemy.element.classList.remove('unit-engaged');
+          moveTowardsCamp(enemy, battleField);
         }
-      } else {
-        // 无拦路友军，全力冲向大本营
-        enemy.isEngaged = false;
-        enemy.target = null;
-        enemy.element.classList.remove('unit-engaged');
-        moveTowardsCamp(enemy);
+      } catch (error) {
+        console.error('敌人AI行为失败:', error);
       }
     }
 
@@ -1012,8 +1181,8 @@
     }
 
     // 向大本营移动（敌人专用）
-    function moveTowardsCamp(enemy) {
-      if (!document.getElementById(enemy.id)) return;
+    function moveTowardsCamp(enemy, battleField) {
+      if (!document.getElementById(enemy.id) || !battleField) return;
       
       // 计算到大本营的方向
       const dx = enemy.campTarget.x - enemy.x;
@@ -1029,6 +1198,10 @@
       // 更新位置（敌人向下移动）
       enemy.x += moveX;
       enemy.y += moveY;
+      
+      // 限制在战场范围内
+      enemy.x = Math.max(30, Math.min(battleField.offsetWidth - 30, enemy.x));
+      enemy.y = Math.max(40, Math.min(battleField.offsetHeight - 150, enemy.y));
       
       // 更新DOM位置
       enemy.element.style.top = `${enemy.y}px`;
@@ -1076,14 +1249,16 @@
       
       // 更新目标血量条
       const targetHpFill = target.element.querySelector('.hp-fill');
-      targetHpFill.style.width = `${Math.max(0, (target.hp / target.maxHp) * 100)}%`;
+      if (targetHpFill) {
+        targetHpFill.style.width = `${Math.max(0, (target.hp / target.maxHp) * 100)}%`;
+      }
       
       // 显示伤害数值
       showDamageValue(target.element, damage, attacker.isEnemy);
       
       // 添加战斗日志
-      const attackerName = attacker.isEnemy ? getEnemyTypeName(attacker.type) : (attacker.type === 'soldier' ? '士兵' : '坦克');
-      const targetName = target.isEnemy ? getEnemyTypeName(target.type) : (target.type === 'soldier' ? '士兵' : '坦克');
+      const attackerName = attacker.isEnemy ? attacker.name : (attacker.type === 'soldier' ? '士兵' : '坦克');
+      const targetName = target.isEnemy ? target.name : (target.type === 'soldier' ? '士兵' : '坦克');
       
       addBattleLog(`${attackerName}对${targetName}造成${damage}点伤害`, attacker.isEnemy ? 'text-danger' : 'text-success');
       
@@ -1092,10 +1267,16 @@
         if (!target.isEnemy) {
           addBattleLog(`${targetName}被击败了!`, 'text-danger');
         } else {
-          addBattleLog(`成功击败${targetName}! 获得${Math.floor(target.maxHp / 2)}积分`, 'text-success');
+          // 统计各类型敌人击杀数
+          if (gameState.statData.enemyTypesKilled[target.type] !== undefined) {
+            gameState.statData.enemyTypesKilled[target.type]++;
+          }
           // 击杀奖励
+          const killReward = target.killReward || 0;
           gameState.killCount++;
-          gameState.battleScore += Math.floor(target.maxHp / 2);
+          gameState.battleScore += killReward;
+          
+          addBattleLog(`成功击败${targetName}! 获得${killReward}积分`, 'text-success');
           elements.killCount.textContent = gameState.killCount;
           elements.battleScore.textContent = gameState.battleScore;
         }
@@ -1132,16 +1313,20 @@
       
       // 显示伤害数值
       const campElement = document.querySelector('.camp');
-      showDamageValue(campElement, damage, true);
+      if (campElement) {
+        showDamageValue(campElement, damage, true);
+      }
       
       // 添加战斗日志
-      addBattleLog(`${getEnemyTypeName(enemy.type)}攻击了大本营，造成${damage}点伤害！`, 'text-danger');
+      addBattleLog(`${enemy.name}攻击了大本营，造成${damage}点伤害！`, 'text-danger');
       
       // 大本营震动效果
-      campElement.classList.add('animate-shake');
-      setTimeout(() => {
-        campElement.classList.remove('animate-shake');
-      }, 500);
+      if (campElement) {
+        campElement.classList.add('animate-shake');
+        setTimeout(() => {
+          campElement.classList.remove('animate-shake');
+        }, 500);
+      }
       
       // 检查大本营是否被摧毁（游戏结束，失败）
       if (gameState.campHp <= 0) {
@@ -1154,68 +1339,93 @@
 
     // 移除单位
     function removeUnit(unit) {
-      // 从数组中移除
-      gameState.units = gameState.units.filter(u => u.id !== unit.id);
-      
-      // 从DOM中移除
-      if (unit.element && unit.element.parentNode) {
-        // 消失动画
-        unit.element.style.opacity = 0;
-        unit.element.style.transform = 'scale(0.5)';
-        setTimeout(() => {
-          if (unit.element && unit.element.parentNode) {
-            unit.element.parentNode.removeChild(unit.element);
-          }
-        }, 300);
+      try {
+        // 从数组中移除
+        gameState.units = gameState.units.filter(u => u.id !== unit.id);
+        
+        // 从DOM中移除
+        if (unit.element && unit.element.parentNode) {
+          // 消失动画
+          unit.element.style.opacity = 0;
+          unit.element.style.transform = 'scale(0.5)';
+          setTimeout(() => {
+            if (unit.element && unit.element.parentNode) {
+              unit.element.parentNode.removeChild(unit.element);
+            }
+          }, 300);
+        }
+      } catch (error) {
+        console.error('移除单位失败:', error);
       }
     }
 
     // 显示伤害数值
     function showDamageValue(targetElement, damage, isEnemyAttack) {
-      const damageElement = document.createElement('div');
-      damageElement.className = `absolute text-${isEnemyAttack ? 'danger' : 'success'} font-bold text-sm`;
-      damageElement.textContent = `-${damage}`;
-      
-      // 定位到目标上方
-      const targetRect = targetElement.getBoundingClientRect();
-      const fieldRect = document.querySelector('.battle-field').getBoundingClientRect();
-      
-      damageElement.style.left = `${targetRect.left - fieldRect.left + targetRect.width/2 - 10}px`;
-      damageElement.style.top = `${targetRect.top - fieldRect.top - 20}px`;
-      
-      elements.damageContainer.appendChild(damageElement);
-      
-      // 动画效果
-      setTimeout(() => {
-        damageElement.style.opacity = 0;
-        damageElement.style.transform = 'translateY(-15px)';
-        damageElement.style.transition = 'opacity 0.5s, transform 0.5s';
+      try {
+        const damageElement = document.createElement('div');
+        damageElement.className = `absolute text-${isEnemyAttack ? 'danger' : 'success'} font-bold text-sm`;
+        damageElement.textContent = `-${damage}`;
         
+        // 定位到目标上方
+        const targetRect = targetElement.getBoundingClientRect();
+        const fieldRect = document.querySelector('.battle-field').getBoundingClientRect();
+        
+        damageElement.style.left = `${targetRect.left - fieldRect.left + targetRect.width/2 - 10}px`;
+        damageElement.style.top = `${targetRect.top - fieldRect.top - 20}px`;
+        
+        const damageContainer = document.getElementById('damage-container');
+        if (damageContainer) {
+          damageContainer.appendChild(damageElement);
+        }
+        
+        // 动画效果
         setTimeout(() => {
-          if (damageElement.parentNode) {
-            damageElement.parentNode.removeChild(damageElement);
-          }
-        }, 500);
-      }, 10);
+          damageElement.style.opacity = 0;
+          damageElement.style.transform = 'translateY(-15px)';
+          damageElement.style.transition = 'opacity 0.5s, transform 0.5s';
+          
+          setTimeout(() => {
+            if (damageElement.parentNode) {
+              damageElement.parentNode.removeChild(damageElement);
+            }
+          }, 500);
+        }, 10);
+      } catch (error) {
+        console.error('显示伤害数值失败:', error);
+      }
     }
 
     // 添加战斗日志
     function addBattleLog(message, className = 'text-gray-300') {
-      const logItem = document.createElement('div');
-      logItem.className = `flex items-start ${className}`;
-      logItem.innerHTML = `<i class="fa fa-circle text-xs mt-1.5 mr-1.5 text-gray-500"></i><span>${message}</span>`;
-      elements.battleLog.appendChild(logItem);
-      elements.battleLog.scrollTop = elements.battleLog.scrollHeight;
+      try {
+        const logItem = document.createElement('div');
+        logItem.className = `flex items-start ${className}`;
+        logItem.innerHTML = `<i class="fa fa-circle text-xs mt-1.5 mr-1.5 text-gray-500"></i><span>${message}</span>`;
+        
+        const battleLog = document.getElementById('battle-log');
+        if (battleLog) {
+          battleLog.appendChild(logItem);
+          battleLog.scrollTop = battleLog.scrollHeight;
+        }
+      } catch (error) {
+        console.error('添加战斗日志失败:', error);
+      }
     }
 
-    // 结束战斗（优化胜负判定）
+    // 结束战斗（核心升级：完善结算系统）
     function endBattle(isWin) {
       gameState.gameOver = true;
       
       // 清除所有计时器
-      clearInterval(gameState.battleTimer);
-      clearInterval(gameState.enemySpawnTimer);
-      clearInterval(gameState.countdownTimer);
+      if (gameState.battleTimer) {
+        clearInterval(gameState.battleTimer);
+      }
+      if (gameState.enemySpawnTimer) {
+        clearInterval(gameState.enemySpawnTimer);
+      }
+      if (gameState.countdownTimer) {
+        clearInterval(gameState.countdownTimer);
+      }
       
       // 停止所有单位移动和攻击
       gameState.units.forEach(unit => {
@@ -1224,168 +1434,83 @@
         }
       });
       
+      // 计算战斗时长（格式化）
+      const battleMinutes = Math.floor(gameState.battleTime / 60).toString().padStart(2, '0');
+      const battleSeconds = (gameState.battleTime % 60).toString().padStart(2, '0');
+      const battleTimeFormatted = `${battleMinutes}:${battleSeconds}`;
+      
+      // 计算总击杀奖励
+      let totalKillReward = 0;
+      Object.keys(gameState.statData.enemyTypesKilled).forEach(enemyType => {
+        const count = gameState.statData.enemyTypesKilled[enemyType];
+        const rewardPerKill = unitConfigs[enemyType]?.killReward || 0;
+        totalKillReward += count * rewardPerKill;
+      });
+      
+      // 胜利额外奖励
+      const winBonus = isWin ? 50 : 0;
+      const finalScore = gameState.battleScore + winBonus;
+      
       // 更新战绩
       if (isWin) {
         gameState.winCount++;
-        // 胜利奖励：额外50积分
-        gameState.battleScore += 50;
-        elements.battleScore.textContent = gameState.battleScore;
+        gameState.battleScore = finalScore;
       } else {
         gameState.loseCount++;
       }
       
-      // 更新UI
-      elements.newWinRate.textContent = calculateWinRate();
-      elements.killCount.textContent = gameState.killCount;
-      
-      // 设置结果弹窗
-      if (isWin) {
-        elements.resultIcon.className = 'w-20 h-20 rounded-full bg-success/20 border-2 border-success flex items-center justify-center mx-auto mb-4';
-        elements.resultIcon.innerHTML = '<i class="fa fa-trophy text-3xl text-success"></i>';
-        elements.resultTitle.className = 'text-2xl font-bold text-success mb-2';
-        elements.resultTitle.textContent = '战斗胜利!';
-        elements.resultDesc.textContent = `坚守1分钟！成功守护大本营，击杀${gameState.killCount}个敌人，获得50积分奖励！`;
-      } else {
-        elements.resultIcon.className = 'w-20 h-20 rounded-full bg-danger/20 border-2 border-danger flex items-center justify-center mx-auto mb-4';
-        elements.resultIcon.innerHTML = '<i class="fa fa-times-circle text-3xl text-danger"></i>';
-        elements.resultTitle.className = 'text-2xl font-bold text-danger mb-2';
-        elements.resultTitle.textContent = '战斗失败';
-        elements.resultDesc.textContent = `大本营被摧毁，未能坚守1分钟。共击杀${gameState.killCount}个敌人。`;
-      }
-      
-      // 显示结果弹窗
-      setTimeout(() => {
-        elements.battleResult.classList.remove('hidden');
-      }, 1000);
-      
       // 更新用户信息
       updateUserInfo();
+      
+      // 填充结算数据
+      fillSettlementData(isWin, battleTimeFormatted, totalKillReward, winBonus, finalScore);
+      
+      // 显示结算弹窗
+      setTimeout(() => {
+        const battleResult = document.getElementById('battle-result');
+        if (battleResult) {
+          battleResult.classList.remove('hidden');
+        }
+      }, 1000);
     }
 
-    // 事件监听
-    document.addEventListener('DOMContentLoaded', () => {
-      // 头像选择
-      elements.avatarOptions.forEach(option => {
-        option.addEventListener('click', () => {
-          // 移除其他选中状态
-          elements.avatarOptions.forEach(opt => {
-            opt.classList.remove('border-primary', 'border-secondary', 'border-warning', 'border-danger');
-            opt.classList.add('border-transparent');
-          });
+    // 填充结算数据（核心新增）
+    function fillSettlementData(isWin, battleTime, killReward, winBonus, finalScore) {
+      try {
+        // 1. 胜利/失败样式区分
+        if (isWin) {
+          // 胜利样式
+          elements.resultIconContainer.className = 'w-24 h-24 rounded-full mx-auto mb-4 border-4 border-success bg-success/20 flex items-center justify-center border-glow-win';
+          elements.resultIcon.className = 'fa fa-trophy text-4xl text-success';
+          elements.resultTitle.className = 'text-2xl font-bold text-success mb-2';
+          elements.resultTitle.textContent = '战斗胜利!';
+          elements.resultDesc.textContent = `坚守${battleTime}！成功守护大本营`;
+          elements.playAgainBtn.className = 'flex-1 bg-success hover:bg-success/90 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300';
           
-          // 设置当前选中
-          const avatar = option.getAttribute('data-avatar');
-          gameState.userAvatar = avatar;
-          
-          // 设置边框颜色
-          const borderColors = ['', 'border-primary', 'border-secondary', 'border-warning', 'border-danger'];
-          option.classList.remove('border-transparent');
-          option.classList.add(borderColors[avatar]);
-          
-          // 检查登录按钮状态
-          checkLoginBtnStatus();
-        });
-      });
-      
-      // 昵称输入监听
-      elements.nicknameInput.addEventListener('input', checkLoginBtnStatus);
-      
-      // 检查登录按钮状态
-      function checkLoginBtnStatus() {
-        const nickname = elements.nicknameInput.value.trim();
-        const hasAvatar = gameState.userAvatar !== '';
-        
-        if (nickname && hasAvatar) {
-          elements.loginBtn.disabled = false;
-          elements.loginBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+          // 显示奖励区域
+          elements.rewardSection.classList.remove('hidden');
+          elements.rewardBase.textContent = `+${winBonus}`;
+          elements.rewardKills.textContent = `+${killReward}`;
+          elements.rewardTotal.textContent = `+${finalScore - 100}`; // 减去初始100积分，显示本次获得的积分
         } else {
-          elements.loginBtn.disabled = true;
-          elements.loginBtn.classList.add('opacity-70', 'cursor-not-allowed');
+          // 失败样式
+          elements.resultIconContainer.className = 'w-24 h-24 rounded-full mx-auto mb-4 border-4 border-danger bg-danger/20 flex items-center justify-center border-glow-lose';
+          elements.resultIcon.className = 'fa fa-times-circle text-4xl text-danger';
+          elements.resultTitle.className = 'text-2xl font-bold text-danger mb-2';
+          elements.resultTitle.textContent = '战斗失败';
+          elements.resultDesc.textContent = `大本营被摧毁，战斗时长${battleTime}`;
+          elements.playAgainBtn.className = 'flex-1 bg-danger hover:bg-danger/90 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300';
+          
+          // 隐藏奖励区域
+          elements.rewardSection.classList.add('hidden');
         }
-      }
-      
-      // 登录按钮
-      elements.loginBtn.addEventListener('click', () => {
-        const nickname = elements.nicknameInput.value.trim();
-        if (!nickname || !gameState.userAvatar) return;
         
-        // 设置用户信息
-        gameState.userName = nickname;
-        gameState.userId = generateRandomId();
+        // 2. 填充战斗统计数据
+        elements.statKills.textContent = gameState.killCount;
+        elements.statCampHp.textContent = `${gameState.campHp}/${200}`;
+        elements.statTime.textContent = battleTime;
+        elements.statSummoned.textContent = gameState.statData.summonedUnits;
         
-        // 更新用户信息显示
-        updateUserInfo();
-        
-        // 切换到用户页面
-        switchPage('login', 'user');
-      });
-      
-      // 游客登录
-      elements.guestLoginBtn.addEventListener('click', () => {
-        // 随机生成用户信息
-        const guestNames = ['星际旅行者', '宇宙探险家', '银河战士', '太空游侠', '星际猎人'];
-        gameState.userName = guestNames[Math.floor(Math.random() * guestNames.length)];
-        gameState.userId = generateRandomId();
-        gameState.userAvatar = (Math.floor(Math.random() * 4) + 1).toString();
-        
-        // 更新用户信息显示
-        updateUserInfo();
-        
-        // 切换到用户页面
-        switchPage('login', 'user');
-      });
-      
-      // 返回按钮（用户页面）
-      elements.backBtn.addEventListener('click', () => {
-        switchPage('user', 'login');
-      });
-      
-      // 退出登录
-      elements.logoutBtn.addEventListener('click', () => {
-        switchPage('user', 'login');
-      });
-      
-      // 开始游戏
-      elements.startGameBtn.addEventListener('click', () => {
-        switchPage('user', 'battle');
-      });
-      
-      // 返回用户页面（战斗页面）
-      elements.backToUserBtn.addEventListener('click', () => {
-        if (gameState.battleTimer) {
-          clearInterval(gameState.battleTimer);
-        }
-        if (gameState.enemySpawnTimer) {
-          clearInterval(gameState.enemySpawnTimer);
-        }
-        if (gameState.countdownTimer) {
-          clearInterval(gameState.countdownTimer);
-        }
-        switchPage('battle', 'user');
-      });
-      
-      // 召唤士兵
-      elements.summonSoldierBtn.addEventListener('click', () => {
-        summonUnit('soldier');
-      });
-      
-      // 召唤坦克
-      elements.summonTankBtn.addEventListener('click', () => {
-        summonUnit('tank');
-      });
-      
-      // 再来一局
-      elements.playAgainBtn.addEventListener('click', () => {
-        elements.battleResult.classList.add('hidden');
-        initBattle();
-      });
-      
-      // 从结果返回主页
-      elements.backToUserFromResultBtn.addEventListener('click', () => {
-        elements.battleResult.classList.add('hidden');
-        switchPage('battle', 'user');
-      });
-    });
-  </script>
-</body>
-</html>
+        // 3. 更新总积分显示
+        elements.battleScore.textContent = finalScore;
+      } catch (error)
