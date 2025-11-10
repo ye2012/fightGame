@@ -159,6 +159,39 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // 新增绑定：弓箭手
+  if (elements.summonArcherBtn) {
+    elements.summonArcherBtn.addEventListener('click', () => {
+      if (gameState.gameOver) {
+        addBattleLog('战斗已结束，无法召唤单位！', 'text-warning');
+        return;
+      }
+      summonUnit('archer');
+    });
+  }
+
+  // 新增绑定：法师
+  if (elements.summonMageBtn) {
+    elements.summonMageBtn.addEventListener('click', () => {
+      if (gameState.gameOver) {
+        addBattleLog('战斗已结束，无法召唤单位！', 'text-warning');
+        return;
+      }
+      summonUnit('mage');
+    });
+  }
+
+  // 新增绑定：骑士
+  if (elements.summonKnightBtn) {
+    elements.summonKnightBtn.addEventListener('click', () => {
+      if (gameState.gameOver) {
+        addBattleLog('战斗已结束，无法召唤单位！', 'text-warning');
+        return;
+      }
+      summonUnit('knight');
+    });
+  }
+
   // -------------------------- 4. 战斗结算弹窗事件 --------------------------
   // 从结算页返回个人中心
   if (elements.backToUserFromResult) {
