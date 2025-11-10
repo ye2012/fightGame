@@ -332,3 +332,16 @@ button {
     padding: 8px !important;
   }
 }
+
+/* 新增：飞行单位样式（紫色边框发光） */
+.unit.is-flying {
+  border-color: var(--color-secondary) !important;
+  box-shadow: 0 0 10px rgba(114, 46, 209, 0.7) !important;
+}
+
+/* 飞行敌人图标颜色强化 */
+.unit.is-flying i {
+  color: var(--color-secondary) !important;
+}
+
+/* 保持原有样式不变，新增上述2段代码 */
