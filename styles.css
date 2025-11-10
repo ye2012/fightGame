@@ -1,0 +1,334 @@
+/* 基础样式重置（避免浏览器默认样式冲突） */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Microsoft YaHei", sans-serif !important;
+}
+
+/* 自定义颜色变量（全局统一） */
+:root {
+  --color-primary: #1677FF;    /* 主色-蓝色 */
+  --color-secondary: #722ED1;  /* 次色-紫色 */
+  --color-warning: #FF7D00;    /* 警告色-橙色 */
+  --color-danger: #F53F3F;     /* 危险色-红色 */
+  --color-success: #00B42A;    /* 成功色-绿色 */
+  --color-camp: #00B42A;       /* 大本营颜色 */
+  --color-gold: #FFD700;       /* 金色-奖励 */
+  --color-gray-100: #F5F7FA;   /* 浅灰 */
+  --color-gray-300: #C9CDD4;   /* 中灰 */
+  --color-gray-400: #86909C;   /* 深灰 */
+  --color-gray-700: #4E5969;   /* 更深灰 */
+  --color-gray-800: #272E3B;   /* 近黑灰 */
+  --color-dark: #0F172A;       /* 背景色-深蓝黑 */
+}
+
+/* 全局样式（覆盖Tailwind默认样式） */
+.bg-dark {
+  background-color: var(--color-dark) !important;
+}
+
+.text-light {
+  color: var(--color-gray-100) !important;
+}
+
+.text-primary {
+  color: var(--color-primary) !important;
+}
+
+.text-secondary {
+  color: var(--color-secondary) !important;
+}
+
+.text-warning {
+  color: var(--color-warning) !important;
+}
+
+.text-danger {
+  color: var(--color-danger) !important;
+}
+
+.text-success {
+  color: var(--color-success) !important;
+}
+
+.text-camp {
+  color: var(--color-camp) !important;
+}
+
+.text-gold {
+  color: var(--color-gold) !important;
+}
+
+.text-gray-300 {
+  color: var(--color-gray-300) !important;
+}
+
+.text-gray-400 {
+  color: var(--color-gray-400) !important;
+}
+
+.bg-primary {
+  background-color: var(--color-primary) !important;
+}
+
+.bg-secondary {
+  background-color: var(--color-secondary) !important;
+}
+
+.bg-warning {
+  background-color: var(--color-warning) !important;
+}
+
+.bg-danger {
+  background-color: var(--color-danger) !important;
+}
+
+.bg-success {
+  background-color: var(--color-success) !important;
+}
+
+.bg-camp {
+  background-color: var(--color-camp) !important;
+}
+
+.bg-gray-800 {
+  background-color: var(--color-gray-800) !important;
+}
+
+.border-primary {
+  border-color: var(--color-primary) !important;
+}
+
+.border-secondary {
+  border-color: var(--color-secondary) !important;
+}
+
+.border-warning {
+  border-color: var(--color-warning) !important;
+}
+
+.border-danger {
+  border-color: var(--color-danger) !important;
+}
+
+.border-success {
+  border-color: var(--color-success) !important;
+}
+
+.border-camp {
+  border-color: var(--color-camp) !important;
+}
+
+.border-gold {
+  border-color: var(--color-gold) !important;
+}
+
+/* 自定义工具类（确保生效） */
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.text-shadow-lg {
+  text-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+}
+
+.text-shadow-gold {
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5) !important;
+}
+
+.bg-gradient-game {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%) !important;
+}
+
+.border-glow {
+  box-shadow: 0 0 15px rgba(22, 119, 255, 0.5) !important;
+}
+
+.border-glow-win {
+  box-shadow: 0 0 20px rgba(0, 180, 42, 0.6) !important;
+}
+
+.border-glow-lose {
+  box-shadow: 0 0 20px rgba(245, 63, 63, 0.6) !important;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none !important;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* 游戏核心样式（简化选择器，增加优先级） */
+.battle-field {
+  position: relative !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 单位样式 */
+.unit {
+  position: absolute !important;
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 10 !important;
+  transition: all 0.2s ease !important;
+}
+
+.unit-attack {
+  animation: attack 0.3s ease-in-out !important;
+}
+
+/* 血条样式 */
+.hp-bar {
+  position: absolute !important;
+  bottom: -10px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 80% !important;
+  height: 4px !important;
+  background-color: rgba(0,0,0,0.3) !important;
+  border-radius: 2px !important;
+  overflow: hidden !important;
+}
+
+.hp-fill {
+  height: 100% !important;
+  transition: width 0.3s ease !important;
+}
+
+/* 倒计时样式 */
+.countdown-box {
+  background: rgba(0,0,0,0.5) !important;
+  border: 2px solid var(--color-primary) !important;
+  border-radius: 8px !important;
+  padding: 4px 12px !important;
+  backdrop-filter: blur(4px) !important;
+  color: var(--color-gray-100) !important;
+}
+
+.countdown-warning {
+  border-color: var(--color-danger) !important;
+  color: var(--color-danger) !important;
+  animation: pulse 1s ease-in-out infinite !important;
+}
+
+/* 统计卡片样式 */
+.stat-card {
+  background: rgba(0,0,0,0.3) !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  backdrop-filter: blur(4px) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+/* 奖励卡片样式 */
+.reward-card {
+  background: rgba(255, 215, 0, 0.1) !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+  backdrop-filter: blur(4px) !important;
+  border: 2px solid var(--color-gold) !important;
+  animation: reward-popup 0.5s ease-out forwards !important;
+}
+
+/* 头像选择样式 */
+.avatar-option {
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+}
+
+.avatar-option:hover {
+  transform: scale(1.05) !important;
+}
+
+/* 按钮样式（覆盖Tailwind默认） */
+button {
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+}
+
+/* 动画关键帧（确保不被覆盖） */
+@keyframes float {
+  0%, 100% { transform: translateY(0) !important; }
+  50% { transform: translateY(-10px) !important; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0) !important; }
+  25% { transform: translateX(-5px) !important; }
+  75% { transform: translateX(5px) !important; }
+}
+
+@keyframes attack {
+  0% { transform: scale(1) !important; }
+  50% { transform: scale(1.1) !important; }
+  100% { transform: scale(1) !important; }
+}
+
+@keyframes spawn {
+  0% { transform: scale(0.5) !important; opacity: 0 !important; }
+  100% { transform: scale(1) !important; opacity: 1 !important; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1 !important; }
+  50% { opacity: 0.5 !important; }
+}
+
+@keyframes reward-popup {
+  0% { transform: scale(0.8) !important; opacity: 0 !important; }
+  100% { transform: scale(1) !important; opacity: 1 !important; }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0 !important; }
+  100% { opacity: 1 !important; }
+}
+
+/* 自定义动画类 */
+.animate-float {
+  animation: float 3s ease-in-out infinite !important;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out !important;
+}
+
+.animate-spawn {
+  animation: spawn 0.3s ease-out forwards !important;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards !important;
+}
+
+/* 响应式适配（确保移动端样式正常） */
+@media (max-width: 768px) {
+  .unit {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  
+  .camp {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  
+  .countdown-box {
+    padding: 2px 8px !important;
+    font-size: 12px !important;
+  }
+  
+  .stat-card {
+    padding: 8px !important;
+  }
+}

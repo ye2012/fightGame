@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>星际对战 - 微信小游戏</title>
+  <!-- 关键：先引入CSS，再引入外部资源，避免样式被覆盖 -->
+  <link rel="stylesheet" href="styles.css">
+  <!-- 引入外部资源 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-light overflow-hidden h-screen">
+  <!-- 登录页面 -->
+  <div id="login-page" class="h-screen flex flex-col items-center justify-center p-4 transition-opacity duration-500">
+    <div class="w-full max-w-md">
+      <div class="text-center mb-10">
+        <div class="w-24 h-24 bg-primary rounded-full mx-auto flex items-center justify-center mb-4 animate-float">
+          <i class="fa fa-rocket text-4xl text-white"></i>
+        </div>
+        <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-white text-shadow-lg">星际对战</h1>
+        <p class="text-gray-400 mt-2">坚守1分钟，守护大本营！</p>
+      </div>
+      
+      <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-gray-300 text-sm mb-1">微信昵称</label>
+            <input type="text" id="nickname" class="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="请输入你的昵称">
+          </div>
+          
+          <div>
+            <label class="block text-gray-300 text-sm mb-1">选择头像</label>
+            <div class="grid grid-cols-4 gap-3 mt-2">
+              <div class="avatar-option w-14 h-14 rounded-full bg-primary/20 border-2 border-transparent flex items-center justify-center cursor-pointer hover:border-primary transition-all" data-avatar="1">
+                <i class="fa fa-user text-xl text-primary"></i>
+              </div>
+              <div class="avatar-option w-14 h-14 rounded-full bg-secondary/20 border-2 border-transparent flex items-center justify-center cursor-pointer hover:border-secondary transition-all" data-avatar="2">
+                <i class="fa fa-robot text-xl text-secondary"></i>
+              </div>
+              <div class="avatar-option w-14 h-14 rounded-full bg-warning/20 border-2 border-transparent flex items-center justify-center cursor-pointer hover:border-warning transition-all" data-avatar="3">
+                <i class="fa fa-alien text-xl text-warning"></i>
+              </div>
+              <div class="avatar-option w-14 h-14 rounded-full bg-danger/20 border-2 border-transparent flex items-center justify-center cursor-pointer hover:border-danger transition-all" data-avatar="4">
+                <i class="fa fa-star text-xl text-danger"></i>
+              </div>
+            </div>
+          </div>
+          
+          <button id="login-btn" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center mt-6 opacity-70 cursor-not-allowed" disabled>
+            <i class="fa fa-weixin mr-2"></i> 微信快捷登录
+          </button>
+        </div>
+        
+        <div class="text-center mt-4 text-gray-400 text-sm">
+          <p>登录即表示同意 <a href="#" class="text-primary hover:underline">用户协议</a> 和 <a href="#" class="text-primary hover:underline">隐私政策</a></p>
+        </div>
+      </div>
+      
+      <div class="text-center mt-6">
+        <button id="guest-login" class="text-gray-400 hover:text-primary transition-colors text-sm">
+          <i class="fa fa-user-o mr-1"></i> 游客登录
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 用户信息页面 -->
+  <div id="user-page" class="h-screen flex flex-col hidden opacity-0 transition-opacity duration-500">
+    <header class="bg-gray-800/80 backdrop-blur-sm border-b border-gray-700/50 py-3 px-4 flex items-center justify-between">
+      <button id="back-btn" class="text-gray-300 hover:text-white transition-colors">
+        <i class="fa fa-arrow-left"></i>
+      </button>
+      <h2 class="text-lg font-semibold">个人中心</h2>
+      <div class="w-6"></div>
+    </header>
+    
+    <main class="flex-1 overflow-y-auto scrollbar-hide p-4">
+      <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 mb-6">
+        <div class="flex items-center">
+          <div id="user-avatar" class="w-16 h-16 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mr-4">
+            <i class="fa fa-user text-2xl text-primary"></i>
+          </div>
+          <div>
+            <h3 id="user-name" class="text-xl font-bold text-white">星际战士</h3>
+            <div class="flex items-center mt-1">
+              <span class="text-yellow-400 flex items-center">
+                <i class="fa fa-star mr-1"></i>
+                <span id="user-level">1级</span>
+              </span>
+              <span class="text-gray-400 text-sm ml-3">ID: <span id="user-id">888888</span></span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-3 gap-4 mt-6">
+          <div class="text-center">
+            <p class="text-gray-400 text-sm">胜率</p>
+            <p id="win-rate" class="text-2xl font-bold text-white">0%</p>
+          </div>
+          <div class="text-center">
+            <p class="text-gray-400 text-sm">战胜</p>
+            <p id="win-count" class="text-2xl font-bold text-success">0</p>
+          </div>
+          <div class="text-center">
+            <p class="text-gray-400 text-sm">战败</p>
+            <p id="lose-count" class="text-2xl font-bold text-danger">0</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 overflow-hidden">
+        <div class="menu-item flex items-center justify-between p-4 border-b border-gray-700/30 hover:bg-gray-700/20 transition-colors cursor-pointer">
+          <div class="flex items-center">
+            <div class="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center mr-3">
+              <i class="fa fa-trophy text-primary"></i>
+            </div>
+            <span>战绩排行</span>
+          </div>
+          <i class="fa fa-chevron-right text-gray-500"></i>
+        </div>
+        <div class="menu-item flex items-center justify-between p-4 border-b border-gray-700/30 hover:bg-gray-700/20 transition-colors cursor-pointer">
+          <div class="flex items-center">
+            <div class="w-10 h-10 rounded-lg bg-secondary/20 flex items-center justify-center mr-3">
+              <i class="fa fa-cog text-secondary"></i>
+            </div>
+            <span>游戏设置</span>
+          </div>
+          <i class="fa fa-chevron-right text-gray-500"></i>
+        </div>
+        <div class="menu-item flex items-center justify-between p-4 border-b border-gray-700/30 hover:bg-gray-700/20 transition-colors cursor-pointer">
+          <div class="flex items-center">
+            <div class="w-10 h-10 rounded-lg bg-warning/20 flex items-center justify-center mr-3">
+              <i class="fa fa-question-circle text-warning"></i>
+            </div>
+            <span>帮助中心</span>
+          </div>
+          <i class="fa fa-chevron-right text-gray-500"></i>
+        </div>
+      </div>
+      
+      <button id="start-game" class="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-bold py-4 px-4 rounded-2xl transition-all duration-300 flex items-center justify-center mt-8 border-glow">
+        <i class="fa fa-play-circle mr-2 text-xl"></i> 开始对战
+      </button>
+      
+      <button id="logout-btn" class="w-full bg-transparent border border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300 font-medium py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center mt-4">
+        <i class="fa fa-sign-out mr-2"></i> 退出登录
+      </button>
+    </main>
+  </div>
+
+  <!-- 战斗页面（核心修改：顶部新增剩余积分显示） -->
+  <div id="battle-page" class="h-screen flex flex-col hidden opacity-0 transition-opacity duration-500 bg-gradient-game">
+    <header class="bg-gray-900/60 backdrop-blur-sm py-2 px-4 flex items-center justify-between border-b border-gray-800/50 z-20">
+      <div class="flex items-center">
+        <button id="back-to-user" class="text-gray-300 hover:text-white transition-colors mr-4">
+          <i class="fa fa-arrow-left"></i>
+        </button>
+        <div class="flex items-center">
+          <div id="battle-user-avatar" class="w-10 h-10 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center mr-2">
+            <i class="fa fa-user text-lg text-primary"></i>
+          </div>
+          <span id="battle-user-name" class="text-white font-medium">星际战士</span>
+        </div>
+      </div>
+      
+      <!-- 新增剩余积分显示：倒计时右侧，与当前积分并列 -->
+      <div class="flex items-center gap-4">
+        <div class="countdown-box flex items-center" id="countdown-container">
+          <i class="fa fa-clock-o mr-2"></i>
+          <span id="countdown-text">01:00</span>
+        </div>
+        <div class="bg-gray-800/80 rounded-full px-3 py-1 text-sm flex items-center">
+          <i class="fa fa-coins text-green-400 mr-1"></i>
+          <span id="remaining-score">100</span>
+        </div>
+        <div class="bg-gray-800/80 rounded-full px-3 py-1 text-sm flex items-center">
+          <i class="fa fa-bolt text-yellow-400 mr-1"></i>
+          <span id="battle-score">0</span>
+        </div>
+      </div>
+    </header>
+    
+    <main class="flex-1 relative battle-field">
+      <div class="absolute top-4 right-4 w-48 bg-gray-900/80 backdrop-blur-sm rounded-xl p-3 border border-gray-800/50 max-h-64 overflow-y-auto scrollbar-hide z-10">
+        <h4 class="text-sm font-semibold text-gray-300 mb-2 flex items-center">
+          <i class="fa fa-history mr-1 text-gray-500"></i> 战斗日志
+        </h4>
+        <div id="battle-log" class="space-y-2 text-xs">
+        </div>
+      </div>
+      
+      <div id="damage-container" class="absolute inset-0 pointer-events-none z-30"></div>
+      
+      <div class="camp-container absolute bottom-24 left-1/2 transform -translate-x-1/2 z-10 flex flex-col items-center">
+        <div class="camp w-24 h-24 bg-camp/30 border-2 border-camp rounded-xl flex items-center justify-center border-glow animate-pulse-slow">
+          <i class="fa fa-fort-awesome text-4xl text-camp"></i>
+        </div>
+        <div class="mt-2 bg-gray-800/80 rounded-full px-4 py-1 text-sm flex items-center">
+          <i class="fa fa-shield text-camp mr-1"></i>
+          <span id="camp-hp">200</span>
+        </div>
+      </div>
+      
+      <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-6 z-20">
+        <div class="unit-btn-container flex flex-col items-center">
+          <button id="summon-soldier" class="w-16 h-16 bg-success/20 hover:bg-success/30 text-success border-2 border-success rounded-full flex items-center justify-center transition-all duration-200 animate-spawn">
+            <i class="fa fa-user text-2xl"></i>
+          </button>
+          <span class="mt-2 text-sm text-gray-300">士兵 (10积分)</span>
+        </div>
+        <div class="unit-btn-container flex flex-col items-center">
+          <button id="summon-tank" class="w-16 h-16 bg-warning/20 hover:bg-warning/30 text-warning border-2 border-warning rounded-full flex items-center justify-center transition-all duration-200 animate-spawn">
+            <i class="fa fa-tank text-2xl"></i>
+          </button>
+          <span class="mt-2 text-sm text-gray-300">坦克 (30积分)</span>
+        </div>
+      </div>
+    </main>
+    
+    <!-- 战斗结束结算弹窗 -->
+    <div id="battle-result" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+      <div class="bg-gray-800/90 backdrop-blur-md rounded-2xl p-8 border border-gray-700/50 max-w-md w-full animate-fade-in" id="result-container">
+        <div class="text-center mb-6" id="result-header">
+          <div class="w-24 h-24 rounded-full mx-auto mb-4 border-4 flex items-center justify-center" id="result-icon-container">
+            <i class="fa fa-trophy text-4xl" id="result-icon"></i>
+          </div>
+          <h3 class="text-2xl font-bold mb-2" id="result-title">战斗胜利!</h3>
+          <p class="text-gray-300" id="result-desc">坚守1分钟！成功守护大本营</p>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div class="stat-card text-center">
+            <p class="text-gray-400 text-sm mb-1">击杀数</p>
+            <p class="text-2xl font-bold text-white" id="stat-kills">0</p>
+          </div>
+          <div class="stat-card text-center">
+            <p class="text-gray-400 text-sm mb-1">剩余血量</p>
+            <p class="text-2xl font-bold text-camp" id="stat-camp-hp">0</p>
+          </div>
+          <div class="stat-card text-center">
+            <p class="text-gray-400 text-sm mb-1">战斗时长</p>
+            <p class="text-2xl font-bold text-white" id="stat-time">00:00</p>
+          </div>
+          <div class="stat-card text-center">
+            <p class="text-gray-400 text-sm mb-1">召唤单位</p>
+            <p class="text-2xl font-bold text-white" id="stat-summoned">0</p>
+          </div>
+        </div>
+        
+        <div class="reward-card mb-6 hidden" id="reward-section">
+          <div class="text-center">
+            <h4 class="text-lg font-bold text-gold text-shadow-gold mb-3">战斗奖励</h4>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="flex flex-col items-center">
+                <i class="fa fa-bolt text-2xl text-gold mb-1"></i>
+                <p class="text-gray-300 text-sm">基础奖励</p>
+                <p class="text-xl font-bold text-gold" id="reward-base">+50</p>
+              </div>
+              <div class="flex flex-col items-center">
+                <i class="fa fa-star text-2xl text-gold mb-1"></i>
+                <p class="text-gray-300 text-sm">击杀奖励</p>
+                <p class="text-xl font-bold text-gold" id="reward-kills">+0</p>
+              </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gold/30">
+              <p class="text-gray-300 text-sm">总积分奖励</p>
+              <p class="text-2xl font-bold text-gold text-shadow-gold" id="reward-total">+0</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex gap-3">
+          <button id="back-to-user-from-result" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300">
+            <i class="fa fa-arrow-left mr-2"></i> 返回主页
+          </button>
+          <button id="play-again" class="flex-1 font-bold py-3 px-4 rounded-lg transition-all duration-300">
+            <i class="fa fa-refresh mr-2"></i> 再来一局
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 引入脚本文件（按执行顺序） -->
+  <script src="game-config.js"></script>
+  <script src="game-utils.js"></script>
+  <script src="game-events.js"></script>
+</body>
+</html>
